@@ -42,8 +42,8 @@ next-env.d.ts
 
 /app/generated/prisma
 
-# local sqlite db + uploaded photos (not for prod use — see lib/storage.ts)
-/dev.db
-/dev.db-journal
-/public/uploads/*
-!/public/uploads/.gitkeep
+# local uploaded photos (production uses UPLOAD_DIR, see lib/storage.ts)
+/uploads/
+
+# one-time migration output
+/migration-export/

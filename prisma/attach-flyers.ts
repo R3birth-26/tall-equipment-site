@@ -8,21 +8,13 @@
 // a crash (production is still missing 14 units until seed-new-inventory runs).
 //
 // Run locally:      npx tsx prisma/attach-flyers.ts
-// Run vs production: TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... npx tsx prisma/attach-flyers.ts
+// Run vs production: DATABASE_URL=mysql://... npx tsx prisma/attach-flyers.ts
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "../app/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { createDbAdapter } from "../lib/db-adapter";
 
-const adapter = process.env.TURSO_DATABASE_URL
-  ? new PrismaLibSql({
-      url: process.env.TURSO_DATABASE_URL,
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    })
-  : new PrismaBetterSqlite3({
-      url: process.env.DATABASE_URL ?? "file:./dev.db",
-    });
+const adapter = createDbAdapter();
 const prisma = new PrismaClient({ adapter });
 
 const ROOT = path.join(__dirname, "..");

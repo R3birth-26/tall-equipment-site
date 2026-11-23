@@ -11,6 +11,6 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   createServer((req, res) => handle(req, res)).listen(port, () => {
-    console.log(`Tall Automotive site listening on port ${port}`);
+    console.log(`Tall Equipment & Machinery site listening on port ${port}`);
   });
 });

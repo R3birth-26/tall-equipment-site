@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { siteUrl } from "@/lib/site";
 import { equipmentSlug } from "@/lib/slug";
 
+// Built per request so new and sold listings show up right away.
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const equipment = await prisma.equipment.findMany({
     where: { status: { not: "sold" } },

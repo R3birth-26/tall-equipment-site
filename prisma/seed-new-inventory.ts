@@ -7,19 +7,11 @@
 // before these go live. Idempotent: skips any stockNumber that already exists.
 //
 // Run locally:      npx tsx prisma/seed-new-inventory.ts
-// Run vs production: TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... npx tsx prisma/seed-new-inventory.ts
+// Run vs production: DATABASE_URL=mysql://... npx tsx prisma/seed-new-inventory.ts
 import { PrismaClient } from "../app/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { createDbAdapter } from "../lib/db-adapter";
 
-const adapter = process.env.TURSO_DATABASE_URL
-  ? new PrismaLibSql({
-      url: process.env.TURSO_DATABASE_URL,
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    })
-  : new PrismaBetterSqlite3({
-      url: process.env.DATABASE_URL ?? "file:./dev.db",
-    });
+const adapter = createDbAdapter();
 const prisma = new PrismaClient({ adapter });
 
 const PRICE_TBD = 0; // placeholder — dealer site is "Get ePrice" only

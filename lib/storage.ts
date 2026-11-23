@@ -1,27 +1,36 @@
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { put } from "@vercel/blob";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 /**
- * Saves an uploaded photo and returns its public URL.
+ * Where admin-uploaded photos live on disk.
  *
- * Uses Vercel Blob when BLOB_READ_WRITE_TOKEN is set (auto-injected once a
- * Blob store is connected to the Vercel project) — Vercel's filesystem is
- * ephemeral, so local disk writes don't persist there. Falls back to writing
- * under public/uploads for local dev / traditional Node hosting.
+ * On SiteGround, set UPLOAD_DIR to a folder OUTSIDE the deployed app
+ * (each GitHub deploy replaces the app folder, which would wipe photos
+ * kept inside it). Locally it defaults to ./uploads (git-ignored).
+ *
+ * Files are served by app/uploads/[file]/route.ts, not from /public:
+ * Next.js only serves public/ files that existed at build time.
  */
+export const UPLOAD_DIR =
+  process.env.UPLOAD_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
+
+export const ALLOWED_PHOTO_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".avif": "image/avif",
+};
+
+/** Saves an uploaded photo and returns its public URL (/uploads/<file>). */
 export async function savePhoto(file: File): Promise<string> {
-  const ext = path.extname(file.name) || ".jpg";
-  const filename = `${randomUUID()}${ext}`;
+  const ext = path.extname(file.name).toLowerCase();
+  const safeExt = ext in ALLOWED_PHOTO_TYPES ? ext : ".jpg";
+  const filename = `${randomUUID()}${safeExt}`;
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(filename, file, { access: "public" });
-    return blob.url;
-  }
-
+  await mkdir(UPLOAD_DIR, { recursive: true });
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(UPLOAD_DIR, filename), buffer);
   return `/uploads/${filename}`;
