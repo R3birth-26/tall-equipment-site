@@ -9,13 +9,16 @@
 // migrate-to-siteground.ts for those instead.
 //
 // Env: TURSO_DATABASE_URL, TURSO_AUTH_TOKEN (read only)
-// Usage: npx tsx prisma/export-turso-sql.ts [output.sql]
+// Usage: npx tsx prisma/export-turso-sql.ts [--skip-admins] [output.sql]
+//        --skip-admins leaves the AdminUser table untouched (keeps logins set up on SiteGround)
 //        default output: migration-export/tall-equipment-data.sql (git-ignored)
 import { createClient, type Row } from "@libsql/client";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const out = process.argv[2] ?? path.join("migration-export", "tall-equipment-data.sql");
+const args = process.argv.slice(2);
+const skipAdmins = args.includes("--skip-admins");
+const out = args.find((a) => !a.startsWith("--")) ?? path.join("migration-export", "tall-equipment-data.sql");
 
 function need(name: string): string {
   const value = process.env[name];
@@ -94,19 +97,20 @@ async function main() {
 
   const sql =
     `-- Tall Equipment & Machinery: data exported from Turso on ${new Date().toISOString()}\n` +
-    `-- ${equipmentRows.length} equipment, ${photoRows.length} photos, ${adminRows.length} admin users.\n` +
+    `-- ${equipmentRows.length} equipment, ${photoRows.length} photos, ${skipAdmins ? "admin users left unchanged" : `${adminRows.length} admin users`}.\n` +
     `-- Import in phpMyAdmin into the site's database. Replaces all rows in these tables.\n\n` +
     `SET NAMES utf8mb4;\nSET time_zone = '+00:00';\nSTART TRANSACTION;\n\n` +
-    "DELETE FROM `Photo`;\nDELETE FROM `Equipment`;\nDELETE FROM `AdminUser`;\n\n" +
+    "DELETE FROM `Photo`;\nDELETE FROM `Equipment`;\n" +
+    (skipAdmins ? "" : "DELETE FROM `AdminUser`;\n") + "\n" +
     insert("Equipment", equipmentCols, equipmentRows) + "\n" +
     insert("Photo", ["id", "url", "order", "equipmentId"], photoRows) + "\n" +
-    insert("AdminUser", ["id", "email", "passwordHash", "createdAt"], adminRows) + "\n" +
+    (skipAdmins ? "" : insert("AdminUser", ["id", "email", "passwordHash", "createdAt"], adminRows) + "\n") +
     "COMMIT;\n";
 
   await mkdir(path.dirname(out), { recursive: true });
   await writeFile(out, sql, "utf8");
   console.log(`Wrote ${out}`);
-  console.log(`  equipment: ${equipmentRows.length}, photos: ${photoRows.length}, admin users: ${adminRows.length}`);
+  console.log(`  equipment: ${equipmentRows.length}, photos: ${photoRows.length}, admin users: ${skipAdmins ? "skipped" : adminRows.length}`);
 }
 
 main().catch((error) => {
