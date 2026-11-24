@@ -53,6 +53,29 @@ async function checkDatabase() {
   }
 }
 
+// Logs where the app runs and whether UPLOAD_DIR is usable, so the photo
+// folder can be placed outside the per-deploy build folder.
+function checkUploadDir() {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  console.log("[paths] " + JSON.stringify({ cwd: process.cwd(), home: os.homedir() }));
+  const dir = process.env.UPLOAD_DIR;
+  if (!dir) {
+    console.warn("[paths] UPLOAD_DIR is not set: admin photo uploads will be lost on the next deploy.");
+    return;
+  }
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const probe = path.join(dir, ".write-test");
+    fs.writeFileSync(probe, "ok");
+    fs.unlinkSync(probe);
+    const files = fs.readdirSync(dir).filter((f) => !f.startsWith(".")).length;
+    console.log("[paths] UPLOAD_DIR OK: " + dir + " (" + files + " files)");
+  } catch (error) {
+    console.error("[paths] UPLOAD_DIR not writable: " + dir + " (" + error.code + ")");
+  }
+}
+
 function migrate() {
   if (!process.env.DATABASE_URL) {
     console.error("DATABASE_URL is not set: skipping migrations. Set it in Site Tools > Node.js.");
@@ -70,6 +93,7 @@ function migrate() {
 }
 
 async function main() {
+  checkUploadDir();
   await checkDatabase();
   migrate();
 
