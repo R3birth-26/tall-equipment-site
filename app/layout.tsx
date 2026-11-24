@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { Oswald, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { siteUrl } from "@/lib/site";
 import "./globals.css";
 
-const oswald = Oswald({
+// Self-hosted (latin subset, variable weight) so builds never depend on Google Fonts.
+const oswald = localFont({
   variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  src: "./fonts/oswald-latin.woff2",
+  weight: "500 700",
+  display: "swap",
 });
 
-const inter = Inter({
+const inter = localFont({
   variable: "--font-body",
-  subsets: ["latin"],
+  src: "./fonts/inter-latin.woff2",
+  weight: "100 900",
+  display: "swap",
 });
 
 const title = "Tall Equipment and Machinery | Bad Boy Mowers & Tractors – Hampstead, NH";
